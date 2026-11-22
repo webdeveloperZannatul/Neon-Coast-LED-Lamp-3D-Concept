@@ -1,0 +1,1268 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AURA-84: Synthwave Deco Parallax LED Lamp [3D Printable Engineering & CAD Preview]</title>
+  <style>
+    :root {
+      --bg: #090912;
+      --panel-bg: rgba(15, 17, 30, 0.85);
+      --panel-border: rgba(255, 42, 162, 0.25);
+      --accent-pink: #ff2a85;
+      --accent-cyan: #00f0ff;
+      --accent-amber: #ffaa00;
+      --accent-violet: #8a2be2;
+      --text-main: #f0f3ff;
+      --text-muted: #8b92b2;
+      --font-mono: "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+    }
+
+    #webgl-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      display: block;
+    }
+
+    /* Ambient CRT Scanline Overlay */
+    .scanlines {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+      background: linear-gradient(rgba(18, 16, 26, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+      background-size: 100% 4px;
+      opacity: 0.45;
+    }
+
+    /* HUD Header */
+    header {
+      position: absolute;
+      top: 20px;
+      left: 24px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .brand-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-tag::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: var(--accent-pink);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-pink);
+      display: inline-block;
+      animation: pulseDot 2s infinite ease-in-out;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #ffffff 30%, var(--accent-cyan) 75%, var(--accent-pink) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 30px rgba(255, 42, 133, 0.3);
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      max-width: 440px;
+      line-height: 1.4;
+    }
+
+    /* Floating Control Deck */
+    .deck-container {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 42, 133, 0.15);
+      max-width: 95vw;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-sans);
+    }
+
+    .btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .btn.active {
+      background: linear-gradient(135deg, rgba(255, 42, 133, 0.3), rgba(0, 240, 255, 0.3));
+      color: #ffffff;
+      border: 1px solid var(--accent-cyan);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+    }
+
+    .slider-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 8px;
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .slider-wrap label {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent-pink);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 110px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: var(--accent-cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-cyan);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Right Info Panel */
+    .specs-card {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      z-index: 10;
+      width: 310px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+      font-size: 12px;
+      line-height: 1.5;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    .specs-card.minimized {
+      transform: translateX(330px);
+      opacity: 0.2;
+    }
+
+    .specs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 8px;
+    }
+    .specs-header h3 {
+      font-size: 13px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--accent-cyan);
+    }
+
+    .spec-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .spec-label {
+      color: var(--text-muted);
+    }
+    .spec-val {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      font-weight: bold;
+      background: rgba(255, 42, 133, 0.2);
+      color: var(--accent-pink);
+      border: 1px solid rgba(255, 42, 133, 0.4);
+    }
+
+    /* Print Beds Metric Tag */
+    .bed-check {
+      margin-top: 10px;
+      background: rgba(0, 240, 255, 0.08);
+      border-left: 3px solid var(--accent-cyan);
+      padding: 6px 10px;
+      border-radius: 0 4px 4px 0;
+      font-size: 11px;
+      color: #c9d4ff;
+    }
+
+    /* Floating Legend */
+    .legend {
+      position: absolute;
+      bottom: 95px;
+      left: 24px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: rgba(12, 14, 25, 0.7);
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      pointer-events: none;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.6; }
+    }
+
+    @media (max-width: 860px) {
+      .specs-card { display: none; }
+      .legend { display: none; }
+      .deck-container { bottom: 12px; padding: 8px; }
+      h1 { font-size: 18px; }
+      .btn { padding: 6px 10px; font-size: 11px; }
+    }
+  </style>
+
+  <!-- Three.js + OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+  <div class="scanlines"></div>
+
+  <header>
+    <div class="brand-tag">CAD Engineered • 3D Printable Assembly</div>
+    <h1>AURA-84 // Neon Skyline Lamp</h1>
+    <div class="subtitle">Art-Deco synthwave desk lamp. 4 precision parallax slot layers, snap-fit tongue/groove bed-split geometry, hidden 5V USB LED conduit & strain relief.</div>
+  </header>
+
+  <!-- Spec Inspector Card -->
+  <div class="specs-card" id="specsCard">
+    <div class="specs-header">
+      <h3>BOM & Print Specs</h3>
+      <span class="badge">220×220 BED READY</span>
+    </div>
+    <div class="spec-item">
+      <span class="spec-label">Outer Assembled:</span>
+      <span class="spec-val">300 × 210 × 75 mm</span>
+    </div>
+    <div class="spec-item">
+      <span class="spec-label">Print Volume Splits:</span>
+      <span class="spec-val">Concealed Keyed Dovetail</span>
+    </div>
+    <div class="spec-item">
+      <span class="spec-label">Wall & Shell Spec:</span>
+      <span class="spec-val">1.2mm (3 perimeters / 0.4n)</span>
+    </div>
+    <div class="spec-item">
+      <span class="spec-label">Layer Spacing:</span>
+      <span class="spec-val">10mm optical pitch</span>
+    </div>
+    <div class="spec-item">
+      <span class="spec-label">Tolerances (Fit):</span>
+      <span class="spec-val">0.25mm slip-clearance</span>
+    </div>
+    <div class="spec-item">
+      <span class="spec-label">Light Source:</span>
+      <span class="spec-val">5V WS2812B / 60 LED/m (45cm)</span>
+    </div>
+    <div class="spec-item">
+      <span class="spec-label">Power Draw:</span>
+      <span class="spec-val">5V 1.8A max (USB Type-C)</span>
+    </div>
+    <div class="bed-check">
+      ✓ Max single part: 215mm diagonal.<br/>
+      ✓ Support-free 45° chamfered crowns.<br/>
+      ✓ No glue required: Interlocking Base Slotting.
+    </div>
+  </div>
+
+  <!-- Parallax Layer Legend -->
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-color" style="background: #111116; border: 1px solid #444;"></div>
+      <span>L1: Matte Black Wave/Palms (Foreground)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #391456; border: 1px solid #8a2be2;"></div>
+      <span>L2: Imperial Violet Deco Towers</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #008f9c; border: 1px solid #00f0ff;"></div>
+      <span>L3: Synth Teal Skyline Spire Horizon</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #e0f6ff; border: 1px solid #ffaa00;"></div>
+      <span>L4: Frosted Opal Backboard + Amber Sun Disc</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #252836; border: 1px dashed #777;"></div>
+      <span>Base: Dual-Split Chassis w/ 10mm LED Channel</span>
+    </div>
+  </div>
+
+  <!-- Interactive Controls Deck -->
+  <div class="deck-container">
+    <div class="btn-group">
+      <button class="btn active" id="btnModeHero">⚡ Synth Glow</button>
+      <button class="btn" id="btnModeDay">☀️ Studio Day</button>
+      <button class="btn" id="btnModeNight">🌙 Dark Room</button>
+      <button class="btn" id="btnModeTech">📐 CAD Wireframe</button>
+    </div>
+
+    <div class="slider-wrap">
+      <label for="explodeSlider">Parallax Explode</label>
+      <input type="range" id="explodeSlider" min="0" max="100" value="0" />
+    </div>
+
+    <div class="btn-group">
+      <button class="btn" id="btnCutaway">Dovetail Split: OFF</button>
+      <button class="btn" id="btnCameraReset">Reset View</button>
+    </div>
+  </div>
+
+  <canvas id="webgl-canvas"></canvas>
+
+  <script>
+    // --- 3D SCENE & ENGINE SETUP ---
+    const canvas = document.getElementById('webgl-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.35;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x06060c);
+    scene.fog = new THREE.FogExp2(0x06060c, 0.0018);
+
+    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 3000);
+    camera.position.set(0, 70, 480);
+
+    const controls = new THREE.OrbitControls(camera, canvas);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.maxPolarAngle = Math.PI / 2 + 0.04;
+    controls.minDistance = 140;
+    controls.maxDistance = 850;
+    controls.target.set(0, 60, 0);
+
+    // --- LIGHTING RIG ---
+    const deskMatteAmbient = new THREE.AmbientLight(0x1a1528, 0.8);
+    scene.add(deskMatteAmbient);
+
+    // Key studio soft light
+    const keyLight = new THREE.DirectionalLight(0xffedf5, 1.2);
+    keyLight.position.set(120, 260, 200);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 2048;
+    keyLight.shadow.mapSize.height = 2048;
+    keyLight.shadow.bias = -0.0005;
+    scene.add(keyLight);
+
+    // Cyan rim light
+    const rimLightCyan = new THREE.DirectionalLight(0x00f0ff, 1.8);
+    rimLightCyan.position.set(-250, 160, -120);
+    scene.add(rimLightCyan);
+
+    // Magenta back-fill glow
+    const rimLightMagenta = new THREE.DirectionalLight(0xff2a85, 2.2);
+    rimLightMagenta.position.set(200, 140, -180);
+    scene.add(rimLightMagenta);
+
+    // Ground reflective table surface
+    const deskGeo = new THREE.PlaneGeometry(1600, 1600);
+    const deskMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0c14,
+      roughness: 0.38,
+      metalness: 0.65,
+    });
+    const desk = new THREE.Mesh(deskGeo, deskMat);
+    desk.rotation.x = -Math.PI / 2;
+    desk.position.y = -38;
+    desk.receiveShadow = true;
+    scene.add(desk);
+
+    // Subtle table grid line aesthetics
+    const gridHelper = new THREE.GridHelper(1200, 40, 0xff2a85, 0x1f2238);
+    gridHelper.position.y = -37.8;
+    gridHelper.material.opacity = 0.18;
+    gridHelper.material.transparent = true;
+    scene.add(gridHelper);
+
+    // --- MATERIALS DEFINITION (Engineered Printable PLA/PETG) ---
+    // Layer 1: Matte Black Carbon PLA
+    const matLayer1 = new THREE.MeshStandardMaterial({
+      color: 0x121318,
+      roughness: 0.88,
+      metalness: 0.08,
+      name: "Matte Black Filament"
+    });
+
+    // Layer 2: Deep Synth Purple PETG
+    const matLayer2 = new THREE.MeshStandardMaterial({
+      color: 0x3d1263,
+      roughness: 0.45,
+      metalness: 0.25,
+      emissive: 0x1f003b,
+      emissiveIntensity: 0.35,
+      name: "Imperial Violet Filament"
+    });
+
+    // Layer 3: Neon Teal Architectural PETG
+    const matLayer3 = new THREE.MeshStandardMaterial({
+      color: 0x028c9b,
+      roughness: 0.35,
+      metalness: 0.3,
+      emissive: 0x004953,
+      emissiveIntensity: 0.4,
+      name: "Vibrant Teal Filament"
+    });
+
+    // Layer 4 Backboard: Frosted Opal Diffuser (Natural PETG / Frosted Acrylic)
+    const matLayer4Sky = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      transmission: 0.72,
+      opacity: 0.94,
+      transparent: true,
+      roughness: 0.38,
+      ior: 1.48,
+      thickness: 3.2,
+      emissive: 0x22132e,
+      emissiveIntensity: 0.25,
+      name: "Opal Diffuser PETG"
+    });
+
+    // Sun Disc: Warm translucent amber/rose
+    const matSun = new THREE.MeshStandardMaterial({
+      color: 0xff7b00,
+      roughness: 0.2,
+      emissive: 0xff4800,
+      emissiveIntensity: 1.8,
+    });
+
+    // Base Chassis: Satin Industrial Slate Gray PLA
+    const matBase = new THREE.MeshStandardMaterial({
+      color: 0x1c1e28,
+      roughness: 0.55,
+      metalness: 0.4,
+      name: "Base Enclosure Filament"
+    });
+
+    // Dovetail Highlight Material (Shown during Split view)
+    const matDovetailKey = new THREE.MeshStandardMaterial({
+      color: 0xff2a85,
+      roughness: 0.3,
+      metalness: 0.6,
+      emissive: 0xff0066,
+      emissiveIntensity: 0.6
+    });
+
+    // Internal LED Strip Material
+    const matLED = new THREE.MeshBasicMaterial({
+      color: 0xffffff
+    });
+
+    // Wireframe overlay material
+    const matCADWire = new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.35
+    });
+
+    // --- LAMP ASSEMBLY ROOT ---
+    const lampAssembly = new THREE.Group();
+    scene.add(lampAssembly);
+
+    // Groups for Parallax Separation
+    const layer1Group = new THREE.Group(); // Palm/Waves: Z = +30
+    const layer2Group = new THREE.Group(); // Purple Towers: Z = +10
+    const layer3Group = new THREE.Group(); // Teal Skyline: Z = -10
+    const layer4Group = new THREE.Group(); // Frosted Diffuser + Sun: Z = -30
+    const baseGroup = new THREE.Group();   // Chassis & Conduit
+
+    lampAssembly.add(baseGroup);
+    lampAssembly.add(layer4Group);
+    lampAssembly.add(layer3Group);
+    lampAssembly.add(layer2Group);
+    lampAssembly.add(layer1Group);
+
+    // Initial Nominal Z positions (Engineering Slot Spacing: 12mm increments)
+    const nominalZ = {
+      l1: 30,
+      l2: 12,
+      l3: -6,
+      l4: -24
+    };
+
+    layer1Group.position.z = nominalZ.l1;
+    layer2Group.position.z = nominalZ.l2;
+    layer3Group.position.z = nominalZ.l3;
+    layer4Group.position.z = nominalZ.l4;
+
+    // Helper: Extrude 2D Shape to 3D Printable Watertight Solid (3.0mm thickness)
+    function extrude2D(shape, thickness = 3.0, bevel = 0.5) {
+      const extrudeSettings = {
+        steps: 1,
+        depth: thickness,
+        bevelEnabled: bevel > 0,
+        bevelThickness: bevel,
+        bevelSize: bevel,
+        bevelOffset: 0,
+        bevelSegments: 2
+      };
+      const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+      geom.center();
+      return geom;
+    }
+
+    // --- GEOMETRY CREATION: LAYER 1 (PALMS & OCEAN ROLLING WAVES) ---
+    // Invented organic Deco crest waves with stylized Art Deco palms
+    function createLayer1Mesh() {
+      const g = new THREE.Group();
+
+      // Printable Wave Base Slices
+      const waveShape = new THREE.Shape();
+      waveShape.moveTo(-148, 0);
+      waveShape.lineTo(-148, 28);
+      // Stylized stepped geometric wave ripples
+      for (let x = -148; x <= 148; x += 37) {
+        waveShape.bezierCurveTo(x + 10, 36, x + 24, 18, x + 37, 26);
+      }
+      waveShape.lineTo(148, 0);
+      waveShape.lineTo(-148, 0);
+
+      const waveGeo = extrude2D(waveShape, 2.8, 0.4);
+      const waveMesh = new THREE.Mesh(waveGeo, matLayer1);
+      waveMesh.position.set(0, 14, 0);
+      waveMesh.castShadow = true;
+      waveMesh.receiveShadow = true;
+      g.add(waveMesh);
+
+      // Low secondary crisp wave foreground crest
+      const crestShape = new THREE.Shape();
+      crestShape.moveTo(-148, 0);
+      crestShape.lineTo(-148, 14);
+      for (let x = -148; x <= 148; x += 45) {
+        crestShape.quadraticCurveTo(x + 22, 26, x + 45, 14);
+      }
+      crestShape.lineTo(148, 0);
+      const crestGeo = extrude2D(crestShape, 3.2, 0.4);
+      const crestMesh = new THREE.Mesh(crestGeo, matLayer1);
+      crestMesh.position.set(0, 6, 1.6);
+      crestMesh.castShadow = true;
+      g.add(crestMesh);
+
+      // Left Art-Deco Angular Palm Silhouette
+      function makeDecoPalm(scaleX = 1, posX = -95, posY = 20) {
+        const palmGroup = new THREE.Group();
+        // Segmented Deco Trunk
+        for (let i = 0; i < 7; i++) {
+          const tW = 8.5 - i * 0.7;
+          const tH = 11;
+          const trunkSeg = new THREE.Mesh(new THREE.BoxGeometry(tW, tH, 3.2), matLayer1);
+          trunkSeg.position.set(Math.sin(i * 0.28) * 8 * scaleX, i * 9.8, 0);
+          trunkSeg.rotation.z = -i * 0.08 * scaleX;
+          trunkSeg.castShadow = true;
+          palmGroup.add(trunkSeg);
+        }
+
+        // Geometric Diamond Palm Fronds (Support free, overhangs <= 45°)
+        const frondAngles = [-1.4, -0.95, -0.45, 0, 0.45, 0.95, 1.35];
+        frondAngles.forEach((ang) => {
+          const frondShape = new THREE.Shape();
+          frondShape.moveTo(0, 0);
+          frondShape.lineTo(-6, 18);
+          frondShape.lineTo(0, 38);
+          frondShape.lineTo(6, 18);
+          frondShape.closePath();
+
+          const frondGeo = extrude2D(frondShape, 2.6, 0.3);
+          const frond = new THREE.Mesh(frondGeo, matLayer1);
+          frond.position.set(16 * scaleX, 68, 0);
+          frond.rotation.z = (ang * 0.9 + 0.3) * scaleX;
+          frond.scale.set(0.9, 0.9, 1);
+          frond.castShadow = true;
+          palmGroup.add(frond);
+        });
+
+        palmGroup.position.set(posX, posY, 0);
+        return palmGroup;
+      }
+
+      g.add(makeDecoPalm(1.05, -100, 10));
+      g.add(makeDecoPalm(-0.85, 110, 10));
+
+      return g;
+    }
+
+    // --- GEOMETRY CREATION: LAYER 2 (IMPERIAL DEEP-PURPLE STEPPED TOWERS) ---
+    // Original stepped Art-Deco ziggurat hotel towers with chevron cutouts
+    function createLayer2Mesh() {
+      const g = new THREE.Group();
+
+      function makeDecoTower(x, w, h, steps, spire = false) {
+        const towerGroup = new THREE.Group();
+
+        // Main Ziggurat Body Steps
+        let currentH = 0;
+        const stepHeight = h / steps;
+        for (let s = 0; s < steps; s++) {
+          const stepW = w * (1 - (s * 0.14));
+          const stepMesh = new THREE.Mesh(new THREE.BoxGeometry(stepW, stepHeight + 0.1, 3.0), matLayer2);
+          stepMesh.position.y = currentH + stepHeight / 2;
+          stepMesh.castShadow = true;
+          towerGroup.add(stepMesh);
+
+          // Vertical Art Deco fluting fins (1.2mm printable ribbing)
+          const finCount = 3;
+          for (let f = -1; f <= 1; f++) {
+            const fin = new THREE.Mesh(new THREE.BoxGeometry(1.6, stepHeight * 0.85, 1.2), matLayer2);
+            fin.position.set((f * (stepW * 0.25)), stepMesh.position.y, 1.8);
+            towerGroup.add(fin);
+          }
+
+          currentH += stepHeight;
+        }
+
+        // Stepped Spire & Deco Crown Needle
+        if (spire) {
+          const spireGeo = new THREE.ConeGeometry(3.5, 24, 4);
+          spireGeo.rotateY(Math.PI / 4);
+          const spireMesh = new THREE.Mesh(spireGeo, matLayer2);
+          spireMesh.position.y = currentH + 12;
+          towerGroup.add(spireMesh);
+
+          // Art Deco crown ring
+          const ringMesh = new THREE.Mesh(new THREE.BoxGeometry(10, 2.5, 3.4), matLayer2);
+          ringMesh.position.y = currentH + 2;
+          towerGroup.add(ringMesh);
+        }
+
+        towerGroup.position.x = x;
+        return towerGroup;
+      }
+
+      // Skyline Composition (Invented Layout, 300mm envelope)
+      g.add(makeDecoTower(-70, 44, 138, 4, true));
+      g.add(makeDecoTower(-24, 38, 105, 3, false));
+      g.add(makeDecoTower(24, 48, 155, 5, true));
+      g.add(makeDecoTower(72, 36, 115, 3, true));
+      g.add(makeDecoTower(-116, 32, 85, 3, false));
+      g.add(makeDecoTower(118, 30, 92, 3, false));
+
+      // Connecting horizon balcony promenade base
+      const horizMesh = new THREE.Mesh(new THREE.BoxGeometry(296, 26, 3.0), matLayer2);
+      horizMesh.position.set(0, 13, 0);
+      g.add(horizMesh);
+
+      return g;
+    }
+
+    // --- GEOMETRY CREATION: LAYER 3 (TEAL ARCHITECTURAL ACCENTS & HORIZON PIER) ---
+    // Fine-detail lattice, geometric chevron friezes, secondary towers, suspension pier
+    function createLayer3Mesh() {
+      const g = new THREE.Group();
+
+      // Slender background stepped needle spires
+      function makeSlenderSpire(x, h) {
+        const sh = new THREE.Shape();
+        sh.moveTo(-8, 0);
+        sh.lineTo(-8, h * 0.6);
+        sh.lineTo(-4, h * 0.85);
+        sh.lineTo(0, h);
+        sh.lineTo(4, h * 0.85);
+        sh.lineTo(8, h * 0.6);
+        sh.lineTo(8, 0);
+        sh.closePath();
+        const mesh = new THREE.Mesh(extrude2D(sh, 2.8, 0.3), matLayer3);
+        mesh.position.set(x, 0, 0);
+        mesh.castShadow = true;
+        return mesh;
+      }
+
+      g.add(makeSlenderSpire(-48, 168));
+      g.add(makeSlenderSpire(0, 185));
+      g.add(makeSlenderSpire(48, 162));
+      g.add(makeSlenderSpire(-110, 125));
+      g.add(makeSlenderSpire(105, 130));
+
+      // Stepped Chevron Deco Screen Panels (Window Grid Matrix)
+      for (let x = -88; x <= 88; x += 44) {
+        const gridBox = new THREE.Group();
+        for (let row = 0; row < 5; row++) {
+          const beam = new THREE.Mesh(new THREE.BoxGeometry(20, 1.8, 3.0), matLayer3);
+          beam.position.set(0, 48 + row * 8, 0);
+          gridBox.add(beam);
+        }
+        gridBox.position.x = x;
+        g.add(gridBox);
+      }
+
+      // Horizon Ocean Pylon Promenade (Deco Ocean Pier / Boardwalk)
+      const pierBeam = new THREE.Mesh(new THREE.BoxGeometry(298, 7, 3.0), matLayer3);
+      pierBeam.position.set(0, 29, 0);
+      g.add(pierBeam);
+
+      // Coastal Beacon Pavilion (Right horizon)
+      const pavShape = new THREE.Shape();
+      pavShape.moveTo(-15, 0);
+      pavShape.lineTo(-12, 45);
+      pavShape.lineTo(0, 62);
+      pavShape.lineTo(12, 45);
+      pavShape.lineTo(15, 0);
+      const pavMesh = new THREE.Mesh(extrude2D(pavShape, 2.8, 0.4), matLayer3);
+      pavMesh.position.set(128, 20, 0);
+      g.add(pavMesh);
+
+      return g;
+    }
+
+    // --- GEOMETRY CREATION: LAYER 4 (OPAL DIFFUSER & AMBER SEGMENTED SUN) ---
+    // Full 300 x 205mm diffuser backboard with concentric segmented Synthwave sun
+    function createLayer4Mesh() {
+      const g = new THREE.Group();
+
+      // Rounded rectangular backplate with snap tabs
+      const plateShape = new THREE.Shape();
+      const w = 296, h = 202, r = 8;
+      plateShape.moveTo(-w/2 + r, 0);
+      plateShape.lineTo(w/2 - r, 0);
+      plateShape.quadraticCurveTo(w/2, 0, w/2, r);
+      plateShape.lineTo(w/2, h - r);
+      plateShape.quadraticCurveTo(w/2, h, w/2 - r, h);
+      plateShape.lineTo(-w/2 + r, h);
+      plateShape.quadraticCurveTo(-w/2, h, -w/2, h - r);
+      plateShape.lineTo(-w/2, r);
+      plateShape.quadraticCurveTo(-w/2, 0, -w/2 + r, 0);
+
+      const plateGeo = extrude2D(plateShape, 2.6, 0.2);
+      const plateMesh = new THREE.Mesh(plateGeo, matLayer4Sky);
+      plateMesh.position.set(0, 101, 0);
+      plateMesh.receiveShadow = true;
+      g.add(plateMesh);
+
+      // Embedded Segmented Synthwave Sun (Concentric Horizontal Slices)
+      const sunGroup = new THREE.Group();
+      const sunRadius = 48;
+      const sliceCount = 8;
+      const sliceH = 8;
+      const gap = 2.4;
+
+      for (let i = 0; i < sliceCount; i++) {
+        const yTop = (sliceCount / 2 - i) * (sliceH + gap);
+        const yBottom = yTop - sliceH;
+        // Check intersection with circle
+        const avgY = (yTop + yBottom) / 2;
+        if (Math.abs(avgY) < sunRadius) {
+          const chordHalfW = Math.sqrt(sunRadius * sunRadius - avgY * avgY);
+          const sliceGeo = new THREE.BoxGeometry(chordHalfW * 2, sliceH, 3.2);
+          const sliceMesh = new THREE.Mesh(sliceGeo, matSun);
+          sliceMesh.position.set(0, avgY, 1.4);
+          sunGroup.add(sliceMesh);
+        }
+      }
+
+      sunGroup.position.set(0, 118, 0);
+      g.add(sunGroup);
+
+      // Rear light dispersion box rim (Ensures sealed light chamber)
+      const rimShape = new THREE.Shape();
+      rimShape.moveTo(-w/2, 0);
+      rimShape.lineTo(w/2, 0);
+      rimShape.lineTo(w/2, h);
+      rimShape.lineTo(-w/2, h);
+      rimShape.closePath();
+
+      const rimHole = new THREE.Path();
+      rimHole.moveTo(-w/2 + 6, 6);
+      rimHole.lineTo(w/2 - 6, 6);
+      rimHole.lineTo(w/2 - 6, h - 6);
+      rimHole.lineTo(-w/2 + 6, h - 6);
+      rimHole.closePath();
+      rimShape.holes.push(rimHole);
+
+      const rimGeo = extrude2D(rimShape, 8, 0.4);
+      const rimMesh = new THREE.Mesh(rimGeo, matBase);
+      rimMesh.position.set(0, 101, -5.2);
+      g.add(rimMesh);
+
+      return g;
+    }
+
+    // --- GEOMETRY CREATION: CHASSIS, BASE, LED CONDUIT & 220mm SPLIT DOVETAIL ---
+    let dovetailPieces = [];
+
+    function createBaseAssembly() {
+      const g = new THREE.Group();
+
+      // Base footprint: 304 W × 76 D × 32 H mm
+      // In physical print, split into Left Half (152mm) and Right Half (152mm) with concealed dovetail key.
+      const bW = 304;
+      const bD = 78;
+      const bH = 34;
+
+      // Base Half Mesh Builder with slots
+      function makeBaseHalf(isRight = false) {
+        const halfGroup = new THREE.Group();
+        const hw = bW / 2; // 152mm (Comfortably fits standard 220mm bed)
+
+        // Main Block
+        const blockGeo = new THREE.BoxGeometry(hw, bH, bD);
+        const block = new THREE.Mesh(blockGeo, matBase);
+        block.position.y = bH / 2;
+        block.castShadow = true;
+        block.receiveShadow = true;
+        halfGroup.add(block);
+
+        // Subtracted/Simulated Parallax Guide Slots (4 slots, 3.4mm wide, 14mm deep)
+        const slotZ = [nominalZ.l1, nominalZ.l2, nominalZ.l3, nominalZ.l4];
+        slotZ.forEach((sz) => {
+          const slotGroove = new THREE.Mesh(
+            new THREE.BoxGeometry(hw - 6, 12, 3.8),
+            new THREE.MeshStandardMaterial({ color: 0x0f1015, roughness: 0.9 })
+          );
+          slotGroove.position.set(isRight ? 1 : -1, bH - 5.5, sz);
+          halfGroup.add(slotGroove);
+        });
+
+        // 5V LED Strip Channel Underside Conduit (10mm wide × 4mm deep)
+        const ledTrough = new THREE.Mesh(
+          new THREE.BoxGeometry(hw, 6, 12),
+          new THREE.MeshBasicMaterial({ color: 0x020204 })
+        );
+        ledTrough.position.set(0, 3, 0);
+        halfGroup.add(ledTrough);
+
+        // Dovetail Joiner Interface on Seam (x = 0)
+        const seamX = isRight ? -hw / 2 : hw / 2;
+        const dtW = 12, dtD = 18, dtH = 22;
+        const dovetailShape = new THREE.Shape();
+        dovetailShape.moveTo(-dtW/2, 0);
+        dovetailShape.lineTo(dtW/2, 0);
+        dovetailShape.lineTo(dtW/2 + 3, dtD);
+        dovetailShape.lineTo(-dtW/2 - 3, dtD);
+        dovetailShape.closePath();
+
+        const dtGeo = new THREE.ExtrudeGeometry(dovetailShape, { depth: dtH, bevelEnabled: false });
+        dtGeo.center();
+        dtGeo.rotateX(Math.PI / 2);
+
+        const dtMesh = new THREE.Mesh(dtGeo, matDovetailKey);
+        dtMesh.position.set(seamX + (isRight ? 1.5 : -1.5), bH / 2, 0);
+        halfGroup.add(dtMesh);
+
+        dovetailPieces.push(dtMesh);
+
+        // Cable strain relief port on rear of right unit
+        if (isRight) {
+          const cableGland = new THREE.Mesh(
+            new THREE.CylinderGeometry(4.5, 4.5, 12, 16),
+            matBase
+          );
+          cableGland.rotateX(Math.PI / 2);
+          cableGland.position.set(hw * 0.45, 10, -bD / 2 - 4);
+          halfGroup.add(cableGland);
+
+          // Simulated braided USB-C Cable exiting rear
+          const curve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(hw * 0.45, 10, -bD / 2),
+            new THREE.Vector3(hw * 0.45, 10, -bD / 2 - 25),
+            new THREE.Vector3(hw * 0.45 + 20, 2, -bD / 2 - 60),
+            new THREE.Vector3(hw * 0.45 + 50, -36, -bD / 2 - 120),
+          ]);
+          const cableGeo = new THREE.TubeGeometry(curve, 32, 2.8, 8, false);
+          const cableMat = new THREE.MeshStandardMaterial({ color: 0x181820, roughness: 0.6 });
+          const cableMesh = new THREE.Mesh(cableGeo, cableMat);
+          halfGroup.add(cableMesh);
+        }
+
+        // Left/Right base placement
+        halfGroup.position.set(isRight ? hw / 2 : -hw / 2, 0, 0);
+        return halfGroup;
+      }
+
+      const leftHalf = makeBaseHalf(false);
+      const rightHalf = makeBaseHalf(true);
+      g.add(leftHalf);
+      g.add(rightHalf);
+
+      // Embedded NeoPixel-Style LED Strip array along bottom trough
+      const ledBar = new THREE.Mesh(new THREE.BoxGeometry(270, 2.5, 9), matLED);
+      ledBar.position.set(0, 15, 0);
+      g.add(ledBar);
+
+      // Discrete LED emitters visualization (45 individual points)
+      const ledEmitterGroup = new THREE.Group();
+      const numLEDs = 36;
+      for (let i = 0; i < numLEDs; i++) {
+        const dot = new THREE.Mesh(
+          new THREE.BoxGeometry(3, 1, 3),
+          new THREE.MeshBasicMaterial({ color: 0xffffff })
+        );
+        dot.position.set(-130 + i * (260 / (numLEDs - 1)), 16.5, 0);
+        ledEmitterGroup.add(dot);
+      }
+      g.add(ledEmitterGroup);
+
+      // Optional Rear Wall Keyhole mounting slot indicator
+      const keyhole = new THREE.Mesh(
+        new THREE.CylinderGeometry(4, 4, 3, 16),
+        new THREE.MeshBasicMaterial({ color: 0x050508 })
+      );
+      keyhole.position.set(0, bH - 8, -bD / 2 + 1);
+      g.add(keyhole);
+
+      return g;
+    }
+
+    // Populate the scene meshes
+    const l1Mesh = createLayer1Mesh();
+    layer1Group.add(l1Mesh);
+
+    const l2Mesh = createLayer2Mesh();
+    layer2Group.add(l2Mesh);
+
+    const l3Mesh = createLayer3Mesh();
+    layer3Group.add(l3Mesh);
+
+    const l4Mesh = createLayer4Mesh();
+    layer4Group.add(l4Mesh);
+
+    const chassisMesh = createBaseAssembly();
+    baseGroup.add(chassisMesh);
+
+    // Position Base zero relative to layers
+    baseGroup.position.y = 0;
+    layer1Group.position.y = 30;
+    layer2Group.position.y = 30;
+    layer3Group.position.y = 30;
+    layer4Group.position.y = 30;
+
+    // --- DYNAMIC LED LIGHTS CHASE ENGINE ---
+    // Realistic multi-point underglow in slot channels
+    const stripLights = [];
+    const colorsSynth = [0xff2a85, 0x00f0ff, 0xffaa00, 0x9d00ff];
+
+    for (let i = 0; i < 5; i++) {
+      const pl = new THREE.PointLight(colorsSynth[i % colorsSynth.length], 3.2, 160, 1.4);
+      pl.position.set(-120 + i * 60, 38, nominalZ.l3);
+      scene.add(pl);
+      stripLights.push(pl);
+    }
+
+    // Soft diffused backboard illumination
+    const sunBackLight = new THREE.PointLight(0xff6a00, 4.5, 240, 1.1);
+    sunBackLight.position.set(0, 140, nominalZ.l4 + 8);
+    scene.add(sunBackLight);
+
+    // Cyan base wash
+    const floorGlow = new THREE.PointLight(0x00f0ff, 1.8, 180, 2.0);
+    floorGlow.position.set(0, 4, 35);
+    scene.add(floorGlow);
+
+    // Wireframe overlay containers for CAD mode
+    const wireframeGroup = new THREE.Group();
+    scene.add(wireframeGroup);
+    wireframeGroup.visible = false;
+
+    function buildWireframeHelpers() {
+      lampAssembly.traverse((obj) => {
+        if (obj.isMesh && obj.geometry) {
+          const wire = new THREE.WireframeGeometry(obj.geometry);
+          const line = new THREE.LineSegments(wire, matCADWire);
+          line.matrixAutoUpdate = false;
+          obj.add(line);
+        }
+      });
+    }
+    buildWireframeHelpers();
+
+    // --- INTERACTION & UI LOGIC ---
+    let currentMode = "hero"; // 'hero', 'day', 'night', 'tech'
+    let explodeFactor = 0;
+    let targetExplode = 0;
+    let dovetailCutawayActive = false;
+    let clock = new THREE.Clock();
+
+    const slider = document.getElementById('explodeSlider');
+    slider.addEventListener('input', (e) => {
+      targetExplode = parseFloat(e.target.value) / 100;
+    });
+
+    const btnHero = document.getElementById('btnModeHero');
+    const btnDay = document.getElementById('btnModeDay');
+    const btnNight = document.getElementById('btnModeNight');
+    const btnTech = document.getElementById('btnModeTech');
+    const btnCutaway = document.getElementById('btnCutaway');
+    const btnCamReset = document.getElementById('btnCameraReset');
+
+    function setActiveBtn(btn) {
+      [btnHero, btnDay, btnNight, btnTech].forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    btnHero.addEventListener('click', () => {
+      setActiveBtn(btnHero);
+      setLightingMode("hero");
+    });
+
+    btnDay.addEventListener('click', () => {
+      setActiveBtn(btnDay);
+      setLightingMode("day");
+    });
+
+    btnNight.addEventListener('click', () => {
+      setActiveBtn(btnNight);
+      setLightingMode("night");
+    });
+
+    btnTech.addEventListener('click', () => {
+      setActiveBtn(btnTech);
+      setLightingMode("tech");
+    });
+
+    btnCutaway.addEventListener('click', () => {
+      dovetailCutawayActive = !dovetailCutawayActive;
+      btnCutaway.classList.toggle('active', dovetailCutawayActive);
+      btnCutaway.textContent = dovetailCutawayActive ? "Dovetail Split: VISIBLE" : "Dovetail Split: OFF";
+    });
+
+    btnCamReset.addEventListener('click', () => {
+      targetExplode = 0;
+      slider.value = 0;
+      controls.reset();
+      camera.position.set(0, 70, 480);
+      controls.target.set(0, 60, 0);
+    });
+
+    function setLightingMode(mode) {
+      currentMode = mode;
+      if (mode === "hero") {
+        scene.background.set(0x06060c);
+        scene.fog.color.set(0x06060c);
+        keyLight.intensity = 1.0;
+        keyLight.color.set(0xffedf5);
+        rimLightCyan.intensity = 2.0;
+        rimLightMagenta.intensity = 2.4;
+        matLayer1.emissive.set(0x000000);
+        matSun.emissiveIntensity = 2.0;
+        stripLights.forEach(l => l.intensity = 3.5);
+        sunBackLight.intensity = 4.5;
+        floorGlow.intensity = 1.8;
+        matCADWire.opacity = 0.0;
+      } else if (mode === "day") {
+        scene.background.set(0xd8deeb);
+        scene.fog.color.set(0xd8deeb);
+        keyLight.intensity = 2.8;
+        keyLight.color.set(0xffffff);
+        rimLightCyan.intensity = 0.4;
+        rimLightMagenta.intensity = 0.3;
+        matSun.emissiveIntensity = 0.1;
+        stripLights.forEach(l => l.intensity = 0.2);
+        sunBackLight.intensity = 0.2;
+        floorGlow.intensity = 0.0;
+        matCADWire.opacity = 0.0;
+      } else if (mode === "night") {
+        scene.background.set(0x020204);
+        scene.fog.color.set(0x020204);
+        keyLight.intensity = 0.2;
+        rimLightCyan.intensity = 2.2;
+        rimLightMagenta.intensity = 2.6;
+        matSun.emissiveIntensity = 2.4;
+        stripLights.forEach(l => l.intensity = 4.2);
+        sunBackLight.intensity = 5.0;
+        floorGlow.intensity = 2.2;
+        matCADWire.opacity = 0.0;
+      } else if (mode === "tech") {
+        scene.background.set(0x040810);
+        scene.fog.color.set(0x040810);
+        keyLight.intensity = 0.6;
+        rimLightCyan.intensity = 1.0;
+        rimLightMagenta.intensity = 0.8;
+        matSun.emissiveIntensity = 0.5;
+        stripLights.forEach(l => l.intensity = 1.0);
+        sunBackLight.intensity = 1.5;
+        floorGlow.intensity = 0.5;
+        matCADWire.opacity = 0.45;
+      }
+    }
+
+    // --- ANIMATION LOOP ---
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const elapsedTime = clock.getElapsedTime();
+
+      // Smooth interpolation for Exploded Parallax Slider
+      explodeFactor += (targetExplode - explodeFactor) * 0.1;
+
+      // Parallax layer separation along Z
+      const expandGap = explodeFactor * 75; // spreads layers up to 75mm apart
+      layer1Group.position.z = nominalZ.l1 + expandGap * 1.5;
+      layer2Group.position.z = nominalZ.l2 + expandGap * 0.6;
+      layer3Group.position.z = nominalZ.l3 - expandGap * 0.4;
+      layer4Group.position.z = nominalZ.l4 - expandGap * 1.4;
+
+      // Elevate layers vertically slightly during explosion for clarity CAD view
+      layer1Group.position.y = 30 + explodeFactor * 25;
+      layer2Group.position.y = 30 + explodeFactor * 18;
+      layer3Group.position.y = 30 + explodeFactor * 10;
+      layer4Group.position.y = 30 + explodeFactor * 4;
+
+      // Base dovetail split expansion
+      if (dovetailPieces.length >= 2) {
+        const splitGap = dovetailCutawayActive ? 28 : 0;
+        chassisMesh.children[0].position.x = -76 - splitGap; // Left Half
+        chassisMesh.children[1].position.x = 76 + splitGap;  // Right Half
+      }
+
+      // Synthwave LED Hue Shifting Pulse
+      if (currentMode === "hero" || currentMode === "night") {
+        stripLights.forEach((light, idx) => {
+          const t = elapsedTime * 2.2 + idx * 0.8;
+          const hue = (Math.sin(t) * 0.5 + 0.5);
+          // Oscillate between Teal (185° / 0.51) and Hot Magenta (325° / 0.90)
+          const synthHue = THREE.MathUtils.lerp(0.50, 0.92, hue);
+          light.color.setHSL(synthHue, 1.0, 0.55);
+          light.intensity = 3.2 + Math.sin(elapsedTime * 4 + idx) * 0.6;
+        });
+
+        // Sun disc radiant warmth pulsation
+        const sunPulse = (Math.sin(elapsedTime * 1.8) * 0.15) + 0.85;
+        matSun.emissiveIntensity = (currentMode === "night" ? 2.5 : 2.0) * sunPulse;
+        matLED.color.setHSL(0.85 + Math.sin(elapsedTime) * 0.1, 0.8, 0.9);
+      }
+
+      // Gentle subtle breathing motion when idle in hero view
+      if (explodeFactor < 0.02 && currentMode === "hero") {
+        lampAssembly.rotation.y = Math.sin(elapsedTime * 0.5) * 0.04;
+      } else {
+        lampAssembly.rotation.y = 0;
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // --- RESPONSIVE RESIZE ---
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    });
+
+    // Initialize
+    animate();
+  </script>
+</body>
+</html>
